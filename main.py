@@ -58,7 +58,7 @@ print('DeviceAddr: ', mac_str)
 labelgen_path = os.path.join('dymo-labelgen', 'main.py')
 runcmd = ["python3", labelgen_path]
 if args.print and not args.preview:
-  args[noconfirm] = true
+  runcmd.append("--noconfirm")
 
 if args.print:
   runcmd.append("--print")

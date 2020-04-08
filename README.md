@@ -19,3 +19,5 @@ If you want to include a logo, you can use `--icon` + png file.
 
 If you don't specify `--print` only a preview is generated instead of the label. 
 If you specify `--print` and `--preview` you'll get a preview before starting the print.
+
+A full example: `python3 main.py --text "Ruuvi Innovations" --icon ruuvi.png --fw ruuvi_firmware_full_2.5.9.hex --print`
