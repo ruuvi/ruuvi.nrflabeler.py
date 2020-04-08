@@ -1,7 +1,22 @@
 import subprocess as proc
 import sys
+import os
 
 from pynrfjprog import HighLevel
+
+import argparse
+
+# setup command-line arguments
+parser = argparse.ArgumentParser("Flash and print label for NRF52 device")
+parser.add_argument('--text', type=str, help="Text")
+parser.add_argument('--icon', type=str, help="Optional png icon file")
+parser.add_argument('--print', action='store_true', help="Print label")
+parser.add_argument('--preview', action='store_true', help="Show a preview of the generated pdf")
+parser.add_argument('--size', type=str, default='normal', help="One of ['small', 'normal']")
+parser.add_argument('--font_size', type=int, default=10)
+parser.add_argument('--font', type=str, default='Helvetica')
+parser.add_argument('--fw', type=str, help='Firmware to flash')
+args = parser.parse_args()
 
 FICR_BASE = 0x10000000
 DEVICEADDR0 = 0xA4
@@ -22,7 +37,7 @@ def mac2str(mac):
   str += hex((mac>>16) & 0xFF) + ":"
   str += hex((mac>>8) & 0xFF) + ":"
   str += hex((mac>>0) & 0xFF)
-  return str.upper().replace("0X", "")
+  return str.upper().replace("0X", "").upper()
 
 api = HighLevel.API()
 api.open()
@@ -39,8 +54,55 @@ addr1 = probe.read(FICR_BASE + DEVICEADDR1)
 mac = ficr2mac(addr0, addr1)
 mac_str = mac2str(mac)
 print('DeviceAddr: ', mac_str)
-probe.erase(HighLevel.EraseAction.ERASE_ALL)
-probe.program("ruuvi_firmware_full_2.5.9.hex")
-probe.reset(HighLevel.ResetAction.RESET_PIN)
+# Launch label printing
+labelgen_path = os.path.join('dymo-labelgen', 'main.py')
+runcmd = ["python3", labelgen_path]
+if args.print and not args.preview:
+  args[noconfirm] = true
+
+if args.print:
+  runcmd.append("--print")
+  runcmd.append("--noconfirm")
+
+if not args.print or args.preview:
+  runcmd.append("--preview")
+
+if args.font_size:
+  runcmd.append("--font")
+  runcmd.append(args.font)
+
+if args.font:
+  runcmd.append("--font_size")
+  runcmd.append(str(args.font_size))
+
+if args.icon:
+  runcmd.append("--icon")
+  runcmd.append(args.icon)
+
+if args.text:
+  runcmd.append(args.text)
+else:
+  runcmd.append(" ")
+
+runcmd.append("--qr")
+qr_str = "MAC: " + mac_str
+if args.fw:
+  qr_str += "\nFW: " + args.fw
+
+runcmd.append(qr_str)
+
+print("Writing label:")  
+print(runcmd)
+proc.run(runcmd)
+
+# Program device
+if args.fw:
+  print("Flashing nRF52 device")
+  probe.erase(HighLevel.EraseAction.ERASE_ALL)
+  probe.program(args.fw)
+  print("Verifying nRF52 device")
+  probe.verify(args.fw)
+  print("Done.")
+  probe.reset(HighLevel.ResetAction.RESET_PIN)
 api.close()
 
