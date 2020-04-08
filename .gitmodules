@@ -1,0 +1,3 @@
+[submodule "dymo-labelgen"]
+	path = dymo-labelgen
+	url = https://github.com/justbuchanan/dymo-labelgen.git
