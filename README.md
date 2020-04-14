@@ -9,15 +9,16 @@ Install required Python packages by `pip3 install -r requirements.txt`.
 Install submodules with `git submodule update --init`
 
 # Usage
-Run `python3 main.py --help` to show all the possible arguments.
+Generate a DYMO XML label with Dymo Connect software. Be sure to save the file with UTF-8 encoding
+and convert the encoding if necessary. If you enter "xx:xx:xx:xx:xx:xx" to the label template,
+it will get replaced by the MAC address of the tag. This also works on text inside QR code.
+String "SENSOR" will get replaced by text argument provided in commandline. 
 
 The program reads MAC address of nRF52 and sends the address to labelwriter as a QR code.
 You can additionally specify a firmware which has softdevice, bootloader and application to 
-flash on RuuviTag. If you flash the firmware, the firmware filename is added to QR-code.
+flash on RuuviTag.
 
-If you want to include a logo, you can use `--icon` + png file. 
+Run `python3 main.py --help` to show all the possible arguments.
 
-If you don't specify `--print` only a preview is generated instead of the label. 
-If you specify `--print` and `--preview` you'll get a preview before starting the print.
-
-A full example: `python3 main.py --text "Ruuvi Innovations" --icon ruuvi.png --fw ruuvi_firmware_full_2.5.9.hex --print`
+A full example: `python3 main.py --text "RuuviTag" --fw ruuvi_firmware_full_2.5.9.hex --print sample.dymo`
+__note__ on Windows machines, use `python` instead of `python3`

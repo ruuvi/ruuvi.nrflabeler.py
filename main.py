@@ -1,6 +1,7 @@
 import subprocess as proc
 import sys
 import os
+import requests
 
 from pynrfjprog import HighLevel
 
@@ -9,12 +10,7 @@ import argparse
 # setup command-line arguments
 parser = argparse.ArgumentParser("Flash and print label for NRF52 device")
 parser.add_argument('--text', type=str, help="Text")
-parser.add_argument('--icon', type=str, help="Optional png icon file")
-parser.add_argument('--print', action='store_true', help="Print label")
-parser.add_argument('--preview', action='store_true', help="Show a preview of the generated pdf")
-parser.add_argument('--size', type=str, default='normal', help="One of ['small', 'normal']")
-parser.add_argument('--font_size', type=int, default=10)
-parser.add_argument('--font', type=str, default='Helvetica')
+parser.add_argument('--print', type=str, help="Print label from template file. 'xx:xx:xx:xx:xx:xx' is replaced with MAC address and 'SENSOR' is replaced with text argument" )
 parser.add_argument('--fw', type=str, help='Firmware to flash')
 args = parser.parse_args()
 
@@ -44,7 +40,10 @@ api.open()
 
 # Find connected probes
 probes = api.get_connected_probes()
-# TODO: Verify there is exactly one probe connected
+
+if len(probes) is not 1:
+  print("Error, expected 1 nRF device to be connected, found: " + str(len(probes)))
+  sys.exit(1)
 snr = probes[0]
 # To program J-Link probe at snr <snr>:
 probe = HighLevel.DebugProbe(api, snr)
@@ -54,46 +53,30 @@ addr1 = probe.read(FICR_BASE + DEVICEADDR1)
 mac = ficr2mac(addr0, addr1)
 mac_str = mac2str(mac)
 print('DeviceAddr: ', mac_str)
-# Launch label printing
-labelgen_path = os.path.join('dymo-labelgen', 'main.py')
-runcmd = ["python3", labelgen_path]
-if args.print and not args.preview:
-  runcmd.append("--noconfirm")
 
 if args.print:
-  runcmd.append("--print")
-  runcmd.append("--noconfirm")
+  labelXml = ""
+  with open(args.print, 'r') as myfile:
+    labelXml = myfile.read()
 
-if not args.print or args.preview:
-  runcmd.append("--preview")
+  labelXml = labelXml.replace("xx:xx:xx:xx:xx:xx", mac_str)
 
-if args.font_size:
-  runcmd.append("--font")
-  runcmd.append(args.font)
+  if args.text:
+    labelXml = labelXml.replace("SENSOR", args.text)
+  else:
+    labelXml = labelXml.replace("SENSOR", "")
 
-if args.font:
-  runcmd.append("--font_size")
-  runcmd.append(str(args.font_size))
+  print(labelXml)
 
-if args.icon:
-  runcmd.append("--icon")
-  runcmd.append(args.icon)
+  url = "https://127.0.0.1:41951/DYMO/DLS/Printing/PrintLabel"
+  labelData = {
+    "printerName": "DYMO LabelWriter 450",
+    "labelXml": labelXml,
+    "labelSetXml": ""
+  }
+  x = requests.post(url, data = labelData, verify = False)
 
-if args.text:
-  runcmd.append(args.text)
-else:
-  runcmd.append(" ")
-
-runcmd.append("--qr")
-qr_str = "MAC: " + mac_str
-if args.fw:
-  qr_str += "\nFW: " + args.fw
-
-runcmd.append(qr_str)
-
-print("Writing label:")  
-print(runcmd)
-proc.run(runcmd)
+  print(x.text)
 
 # Program device
 if args.fw:
