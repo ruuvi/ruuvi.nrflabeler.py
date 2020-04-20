@@ -6,8 +6,6 @@ Download and install [Dymo SDK](https://www.dymo.com/en-US/online-support/online
 
 Install required Python packages by `pip3 install -r requirements.txt`.
 
-Install submodules with `git submodule update --init`
-
 # Usage
 Generate a DYMO XML label with Dymo Connect software. Be sure to save the file with UTF-8 encoding
 and convert the encoding if necessary. If you enter "xx:xx:xx:xx:xx:xx" to the label template,
